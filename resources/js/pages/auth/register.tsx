@@ -14,6 +14,9 @@ type RegisterForm = {
     email: string;
     password: string;
     password_confirmation: string;
+    role: 'student' | 'dorm';
+    contact_no: string;
+    profile_picture: File | null;
 };
 
 export default function Register() {
@@ -22,6 +25,9 @@ export default function Register() {
         email: '',
         password: '',
         password_confirmation: '',
+        role: 'student',
+        contact_no: '',
+        profile_picture: null,
     });
 
     const submit: FormEventHandler = (e) => {
@@ -99,6 +105,48 @@ export default function Register() {
                             placeholder="Confirm password"
                         />
                         <InputError message={errors.password_confirmation} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="role">User Type</Label>
+                        <select
+                            id="role"
+                            value={data.role}
+                            onChange={(e) => setData('role', e.target.value as 'student')}
+                            disabled={processing}
+                            className="rounded-md border px-3 py-2"
+                        >
+                            <option value="student">Student</option>
+                            <option value="dorm">Dorm</option>
+                        </select>
+
+                        <InputError message={errors.role} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="password_confirmation">Contact Number</Label>
+                        <Input
+                            id="contact_no"
+                            type="tel"
+                            required
+                            value={data.contact_no}
+                            onChange={(e) => setData('contact_no', e.target.value)}
+                            disabled={processing}
+                            placeholder="e.g. 09123456789"
+                        />
+                        <InputError message={errors.password_confirmation} />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="profile_picture">Profile Picture</Label>
+                        <Input
+                            id="profile_picture"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setData('profile_picture', e.target.files?.[0] || null)}
+                            disabled={processing}
+                        />
+                        <InputError message={errors.profile_picture} />
                     </div>
 
                     <Button type="submit" className="mt-2 w-full" tabIndex={5} disabled={processing}>
