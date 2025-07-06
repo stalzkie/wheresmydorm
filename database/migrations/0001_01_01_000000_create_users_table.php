@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['student', 'dorm', 'admin']);
+            $table->enum('role', ['student', 'dorm', 'admin'])->nullable();
             $table->string('contact_no', 20)->nullable();
             $table->string('profile_picture')->nullable();
             $table->rememberToken();

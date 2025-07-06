@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class SocialiteController extends Controller
@@ -19,19 +20,33 @@ class SocialiteController extends Controller
     {
         $socialUser = Socialite::driver($provider)->stateless()->user();
 
-        $user = User::firstOrCreate(
-            ['email' => $socialUser->getEmail()],
-            [
-                'name' => $socialUser->getName() ?? $socialUser->getNickname() ?? 'No Name',
-                'password' => bcrypt(Str::random(16)), // Dummy password
-                'email_verified_at' => now(),
-                'role' => 'student', // Default role
-                'profile_picture' => $socialUser->getAvatar(),
-            ]
-        );
+        $user = User::firstOrNew(['email' => $socialUser->getEmail()]);
+
+        if (!$user->exists) {
+            $user->name = $socialUser->getName() ?? $socialUser->getNickname() ?? 'User';
+            $user->password = Hash::make(Str::random(24));
+            $user->email_verified_at = now();
+            $user->profile_picture = $socialUser->getAvatar();
+            $user->save();
+
+            Auth::login($user);
+
+            return redirect()->route('auth.complete-profile');
+        }
+
+        if (is_null($user->role)) {
+            Auth::login($user);
+            return redirect()->route('auth.complete-profile');
+        }
 
         Auth::login($user);
 
-        return redirect()->intended(route('dashboard'));
+        $url = match ($user->role) {
+            'admin'   => 'admin.dashboard',
+            'dorm'    => 'dorm.dashboard',
+            default   => 'student.dashboard',
+        };
+
+        return redirect()->intended(route($url));
     }
 }
