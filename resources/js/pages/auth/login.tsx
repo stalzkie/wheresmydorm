@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import { Facebook, LoaderCircle } from 'lucide-react';
 import { FormEventHandler } from 'react';
 
 import InputError from '@/components/input-error';
@@ -101,6 +101,34 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                     <TextLink href={route('register')} tabIndex={5}>
                         Sign up
                     </TextLink>
+                </div>
+
+                <div className="my-6 flex items-center">
+                    <div className="flex-grow border-t border-gray-200" />
+                    <span className="mx-4 text-sm text-muted-foreground">or</span>
+                    <div className="flex-grow border-t border-gray-200" />
+                </div>
+
+                <div className="grid gap-3">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => (window.location.href = route('social.redirect', { provider: 'google' }))}
+                        className="w-full"
+                    >
+                        <Facebook className="mr-2 h-4 w-4" />
+                        Continue with Google
+                    </Button>
+
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => (window.location.href = route('social.redirect', { provider: 'facebook' }))}
+                        className="w-full"
+                    >
+                        <Facebook className="mr-2 h-4 w-4" />
+                        Continue with Facebook
+                    </Button>
                 </div>
             </form>
 
