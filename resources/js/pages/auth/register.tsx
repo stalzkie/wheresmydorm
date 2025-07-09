@@ -23,6 +23,10 @@ type RegisterForm = {
     role: 'student' | 'dorm';
 
     school_name: string;
+    age: string; 
+    address: string;
+    guardian_name: string;
+    guardian_contact_no: string;
 
     establishment_name: string;
     description: string;
@@ -45,8 +49,14 @@ export default function Register() {
         profile_picture: null,
         role: 'student',
 
+        // Student fields
         school_name: '',
+        age: '',
+        address: '',
+        guardian_name: '',
+        guardian_contact_no: '',
 
+        // Dorm fields
         establishment_name: '',
         description: '',
         establishment_address: '',
@@ -187,10 +197,55 @@ export default function Register() {
                                 />
                                 <InputError message={errors.school_name} />
                             </div>
+
+                            <hr className="my-2" />
+                            <h4 className="text-md font-semibold text-muted-foreground">Additional Details (Optional)</h4>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="age">Age</Label>
+                                <Input
+                                    id="age"
+                                    type="number"
+                                    value={data.age}
+                                    onChange={(e) => setData('age', e.target.value)}
+                                    placeholder="e.g. 18"
+                                />
+                                <InputError message={errors.age} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="address">Permanent Address</Label>
+                                <Textarea
+                                    id="address"
+                                    value={data.address}
+                                    onChange={(e) => setData('address', e.target.value)}
+                                    placeholder="Your home address"
+                                />
+                                <InputError message={errors.address} />
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="guardian_name">Guardian's Name</Label>
+                                    <Input id="guardian_name" value={data.guardian_name} onChange={(e) => setData('guardian_name', e.target.value)} />
+                                    <InputError message={errors.guardian_name} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="guardian_contact_no">Guardian's Contact No.</Label>
+                                    <Input
+                                        id="guardian_contact_no"
+                                        type="tel"
+                                        value={data.guardian_contact_no}
+                                        onChange={(e) => setData('guardian_contact_no', e.target.value)}
+                                    />
+                                    <InputError message={errors.guardian_contact_no} />
+                                </div>
+                            </div>
                         </div>
                     )}
 
                     {data.role === 'dorm' && (
+                        // Dorm fields remain unchanged, they were already complete
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Dormitory Information</h3>
                             <div className="grid gap-2">
