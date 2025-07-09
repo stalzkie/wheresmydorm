@@ -7,10 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Models\Post;
+use Carbon\Carbon;
 
 class PostController extends Controller
 {
-    // ✅ Show post timeline with user profile
     public function index()
     {
         $user = Auth::user();
@@ -38,13 +38,11 @@ class PostController extends Controller
         ]);
     }
 
-    // ✅ Show add post form
     public function create()
     {
         return Inertia::render('dorm/posts/add');
     }
 
-    // ✅ Handle post submission
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -52,16 +50,24 @@ class PostController extends Controller
             'description' => 'nullable|string',
             'price'       => 'required|numeric|min:0',
             'amenities'   => 'nullable|array',
-            'images'      => 'nullable|array',
+            'images'      => 'nullable|array|max:10',
+            'images.*'    => 'file|image|max:10240',
         ]);
+
+        $images = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $images[] = $file->store('uploads', 'public');
+            }
+        }
 
         Post::create([
             'user_id'     => Auth::id(),
             'title'       => $validated['title'],
             'description' => $validated['description'] ?? '',
             'price'       => $validated['price'],
-            'amenities'   => json_encode($validated['amenities'] ?? []),
-            'images'      => json_encode($validated['images'] ?? []),
+            'amenities'   => $validated['amenities'] ?? [],
+            'images'      => $images,
         ]);
 
         return redirect()
@@ -69,19 +75,48 @@ class PostController extends Controller
             ->with('success', 'Post created successfully.');
     }
 
-    // ✅ Show single post
     public function show($id)
     {
-        $post = Post::where('id', $id)
-                    ->where('user_id', Auth::id())
+        $user = Auth::user();
+
+        $post = Post::with(['user', 'reviews.user'])
+                    ->where('id', $id)
+                    ->where('user_id', $user->id)
                     ->firstOrFail();
 
-        return Inertia::render('dorm/posts/show', [
-            'post' => $this->formatPost($post)
+        $reviews = $post->reviews->map(fn ($review) => [
+            'id'          => $review->id,
+            'user'        => ['name' => $review->user->name ?? 'Anonymous'],
+            'rating'      => $review->rating,
+            'description' => $review->description,
+            'date'        => Carbon::parse($review->created_at)->toFormattedDateString(),
+        ]);
+
+        return Inertia::render('dorm/posts/view', [
+            'auth' => ['user' => $user],
+            'post' => [
+                'id'            => $post->id,
+                'title'         => $post->title,
+                'description'   => $post->description,
+                'price'         => $post->price,
+                'images'        => is_array($post->images) ? $post->images : json_decode($post->images ?? '[]', true),
+                'amenities'     => is_array($post->amenities) ? $post->amenities : json_decode($post->amenities ?? '[]', true),
+                'createdAt'     => $post->created_at->toDateTimeString(),
+                'establishment' => $post->establishment_name ?? 'Unknown',
+                'host'          => $post->user->name,
+                'impressions'   => $post->impressions ?? 0,
+                'engagements'   => $post->engagements ?? 0,
+                'averageRating' => round($post->reviews->avg('rating'), 1),
+                'reviewCount'   => $post->reviews->count(),
+                'location'      => [
+                    'lat' => $post->latitude ?? 14.5995,
+                    'lng' => $post->longitude ?? 120.9842,
+                ],
+                'reviews'       => $reviews
+            ]
         ]);
     }
 
-    // ✅ Show post edit form
     public function edit($id)
     {
         $post = Post::where('id', $id)
@@ -93,7 +128,6 @@ class PostController extends Controller
         ]);
     }
 
-    // ✅ Handle post update
     public function update(Request $request, $id)
     {
         $post = Post::where('id', $id)
@@ -105,15 +139,25 @@ class PostController extends Controller
             'description' => 'nullable|string',
             'price'       => 'sometimes|required|numeric|min:0',
             'amenities'   => 'nullable|array',
-            'images'      => 'nullable|array',
+            'images'      => 'nullable|array|max:10',
+            'images.*'    => 'file|image|max:10240',
         ]);
+
+        $images = $post->images;
+
+        if ($request->hasFile('images')) {
+            $images = [];
+            foreach ($request->file('images') as $file) {
+                $images[] = $file->store('uploads', 'public');
+            }
+        }
 
         $post->update([
             'title'       => $validated['title'] ?? $post->title,
             'description' => $validated['description'] ?? $post->description,
             'price'       => $validated['price'] ?? $post->price,
-            'amenities'   => json_encode($validated['amenities'] ?? json_decode($post->amenities, true)),
-            'images'      => json_encode($validated['images'] ?? json_decode($post->images, true)),
+            'amenities'   => $validated['amenities'] ?? $post->amenities,
+            'images'      => $images,
         ]);
 
         return redirect()
@@ -121,7 +165,6 @@ class PostController extends Controller
             ->with('success', 'Post updated.');
     }
 
-    // ✅ Handle post deletion
     public function destroy($id)
     {
         $post = Post::where('id', $id)
@@ -135,7 +178,6 @@ class PostController extends Controller
             ->with('success', 'Post deleted.');
     }
 
-    // 🔁 Shared formatting helper
     private function formatPost(Post $post): array
     {
         return [
@@ -143,8 +185,8 @@ class PostController extends Controller
             'title'       => $post->title,
             'description' => $post->description,
             'price'       => $post->price,
-            'amenities'   => json_decode($post->amenities ?? '[]', true),
-            'images'      => json_decode($post->images ?? '[]', true),
+            'amenities'   => is_array($post->amenities) ? $post->amenities : json_decode($post->amenities ?? '[]', true),
+            'images'      => is_array($post->images) ? $post->images : json_decode($post->images ?? '[]', true),
             'createdAt'   => $post->created_at->toDateTimeString(),
         ];
     }

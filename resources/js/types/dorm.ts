@@ -5,7 +5,8 @@ export interface DormPost {
   price: number;
   images: string[];
   amenities: string[];
-  created_at: string; // ✅ matches what controller returns
+  created_at: string;
+  thumbnail?: string; 
 }
 
 export interface Transaction {

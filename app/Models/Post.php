@@ -19,13 +19,19 @@ class Post extends Model
     ];
 
     protected $casts = [
-        'amenities' => 'array',
         'images' => 'array',
+        'amenities' => 'array',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
+    
+    public function reviews()
+    {
+        return $this->hasMany(\App\Models\Review::class);
+    }
+
 }
 
