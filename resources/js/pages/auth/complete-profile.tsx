@@ -211,7 +211,7 @@ export default function CompleteProfile() {
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="property_type">Property Type</Label>
-                                <Select value={data.property_type} onValueChange={(v: any) => setData('property_type', v)}>
+                                <Select value={data.property_type} onValueChange={(v: typeof data.property_type) => setData('property_type', v)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
@@ -226,7 +226,7 @@ export default function CompleteProfile() {
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="gender_policy">Gender Policy</Label>
-                                <Select value={data.gender_policy} onValueChange={(v: any) => setData('gender_policy', v)}>
+                                <Select value={data.gender_policy} onValueChange={(v: typeof data.gender_policy) => setData('gender_policy', v)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select policy" />
                                     </SelectTrigger>

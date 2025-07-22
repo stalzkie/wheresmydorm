@@ -14,8 +14,11 @@ test('new users can register', function () {
         'email' => 'test@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
+        'role' => 'student',
+        'contact_no' => '09123456789',
+        'school_name' => 'Test University',
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('student.dashboard', absolute: false));
 });

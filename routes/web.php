@@ -11,9 +11,9 @@ use App\Models\Post;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', fn () => Inertia::render('welcome'))->name('home');
+Route::get('/', fn() => Inertia::render('welcome'))->name('home');
 
-Route::middleware(['auth', 'verified'])->get('/dashboard', function () {
+Route::middleware(['auth', 'verified', 'profile.complete'])->get('/dashboard', function () {
     $user = auth()->user();
     $redirectRoute = match ($user->role) {
         'admin' => 'admin.dashboard',
@@ -24,10 +24,24 @@ Route::middleware(['auth', 'verified'])->get('/dashboard', function () {
 })->name('dashboard');
 
 // ==============================
+// ✅ ADMIN DASHBOARD
+// ==============================
+Route::middleware(['auth', 'verified', 'profile.complete'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('dashboard', fn() => Inertia::render('admin/dashboard'))->name('dashboard');
+});
+
+// ==============================
+// ✅ STUDENT DASHBOARD
+// ==============================
+Route::middleware(['auth', 'verified', 'profile.complete'])->prefix('student')->name('student.')->group(function () {
+    Route::get('dashboard', fn() => Inertia::render('student/dashboard'))->name('dashboard');
+});
+
+// ==============================
 // ✅ DORM INERTIA PAGES
 // ==============================
-Route::middleware(['auth', 'verified'])->prefix('dorm')->name('dorm.')->group(function () {
-    Route::get('dashboard', fn () => Inertia::render('dorm/dashboard'))->name('dashboard');
+Route::middleware(['auth', 'verified', 'profile.complete'])->prefix('dorm')->name('dorm.')->group(function () {
+    Route::get('dashboard', fn() => Inertia::render('dorm/dashboard'))->name('dashboard');
 
     // ✅ Dorm Post Routes (uses PostController)
     Route::get('posts', [PostController::class, 'index'])->name('posts.history');
@@ -39,14 +53,12 @@ Route::middleware(['auth', 'verified'])->prefix('dorm')->name('dorm.')->group(fu
     Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
 
     // ✅ Other dorm modules
-    Route::get('transactions', fn () => Inertia::render('dorm/transactions/history'))->name('transactions.history');
-    Route::get('messages', fn () => Inertia::render('dorm/messaging/index'))->name('messages.index');
-    Route::get('analytics/revenue', fn () => Inertia::render('dorm/analytics/revenue'))->name('analytics.revenue');
+    Route::get('transactions', fn() => Inertia::render('dorm/transactions/history'))->name('transactions.history');
+    Route::get('messages', fn() => Inertia::render('dorm/messaging/index'))->name('messages.index');
+    Route::get('analytics/revenue', fn() => Inertia::render('dorm/analytics/revenue'))->name('analytics.revenue');
 });
 
-// ==============================
-// ✅ Optional Modules (still allowed)
-// ==============================
+
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
 // require __DIR__ . '/student.php';

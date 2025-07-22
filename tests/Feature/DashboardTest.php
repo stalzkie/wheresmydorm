@@ -9,7 +9,17 @@ test('guests are redirected to the login page', function () {
 });
 
 test('authenticated users can visit the dashboard', function () {
-    $this->actingAs($user = User::factory()->create());
+    $user = User::factory()->create(['role' => 'student']);
 
-    $this->get('/dashboard')->assertOk();
+    $this->actingAs($user);
+
+    $this->get('/dashboard')->assertRedirect(route('student.dashboard'));
+});
+
+test('users without role are redirected to complete profile', function () {
+    $user = User::factory()->create(['role' => null]);
+
+    $this->actingAs($user);
+
+    $this->get('/dashboard')->assertRedirect(route('auth.complete-profile'));
 });
