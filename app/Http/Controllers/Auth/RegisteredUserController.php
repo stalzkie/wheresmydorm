@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\CompleteProfileRequest;
 use App\Models\User;
-use App\Services\Auth\AuthService;
+use App\Services\Auth\Contracts\AuthServiceInterface;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +17,7 @@ use Inertia\Response;
 class RegisteredUserController extends Controller
 {
     public function __construct(
-        private AuthService $authService
+        private AuthServiceInterface $authService
     ) {}
 
     /**
@@ -35,18 +35,21 @@ class RegisteredUserController extends Controller
     {
         $validatedData = $request->validated();
 
-        $user = DB::transaction(function () use ($request, $validatedData) {
-            return $this->authService->createUser(
-                $validatedData,
-                $request->file('profile_picture'),
-                $request->file('cover_photo')
-            );
+        $user = DB::transaction(function () use ($validatedData) {
+            $user = $this->authService->createUser($validatedData);
+
+            // Create profile if role is provided
+            if (isset($validatedData['role'])) {
+                $this->authService->createUserProfile($user, $validatedData);
+            }
+
+            return $user;
         });
 
         event(new Registered($user));
         Auth::login($user);
 
-        return redirect()->route($this->authService->getRedirectRoute($user));
+        return redirect($this->authService->getRedirectUrl($user));
     }
 
     /**
@@ -55,9 +58,11 @@ class RegisteredUserController extends Controller
     public function completeProfile(): Response|RedirectResponse
     {
         $user = Auth::user();
-        if ($user && $user->role) {
-            return redirect()->route('dashboard');
+
+        if ($user && $this->authService->hasCompleteProfile($user)) {
+            return redirect($this->authService->getRedirectUrl($user));
         }
+
         return Inertia::render('auth/complete-profile');
     }
 
@@ -68,21 +73,20 @@ class RegisteredUserController extends Controller
     {
         $user = Auth::user();
 
-        // Redirect if they somehow already have a role
-        if ($user && $user->role) {
-            return redirect()->route('dashboard');
+        // Redirect if they already have a complete profile
+        if ($user && $this->authService->hasCompleteProfile($user)) {
+            return redirect($this->authService->getRedirectUrl($user));
         }
 
         $validatedData = $request->validated();
 
         DB::transaction(function () use ($user, $validatedData) {
-            $this->authService->completeUserProfile($user, $validatedData);
+            $this->authService->completeProfile($user, $validatedData);
         });
 
-        // Force re-authentication to get updated user data
-        Auth::login($user, true);
+        // Get updated user data
         $updatedUser = Auth::user();
 
-        return redirect()->route($this->authService->getRedirectRoute($updatedUser));
+        return redirect($this->authService->getRedirectUrl($updatedUser));
     }
 }

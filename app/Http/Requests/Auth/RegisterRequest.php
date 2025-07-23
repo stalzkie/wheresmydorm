@@ -24,7 +24,7 @@ class RegisterRequest extends FormRequest
      */
     public function rules(): array
     {
-        $baseRules = [
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
@@ -33,27 +33,30 @@ class RegisterRequest extends FormRequest
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ];
 
-        $studentRules = [
-            'school_name' => 'required_if:role,student|string|max:255',
-            'age' => 'nullable|integer|min:16|max:100',
-            'address' => 'nullable|string|max:500',
-            'guardian_name' => 'nullable|string|max:255',
-            'guardian_contact_no' => 'nullable|string|max:20',
-        ];
+        // Add role-specific rules only if the role is present
+        if ($this->input('role') === 'student') {
+            $rules = array_merge($rules, [
+                'school_name' => 'required|string|max:255',
+                'age' => 'nullable|integer|min:16|max:100',
+                'address' => 'nullable|string|max:500',
+                'guardian_name' => 'nullable|string|max:255',
+                'guardian_contact_no' => 'nullable|string|max:20',
+            ]);
+        } elseif ($this->input('role') === 'dorm') {
+            $rules = array_merge($rules, [
+                'establishment_name' => 'required|string|max:255',
+                'description' => 'required|string|max:1000',
+                'establishment_address' => 'required|string|max:255',
+                'zip_code' => 'required|string|max:10',
+                'contact_email' => 'required|email|max:255',
+                'cover_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
+                'property_type' => ['required', Rule::in(['dormitory', 'apartment', 'bedspace', 'homestay'])],
+                'gender_policy' => ['required', Rule::in(['co-ed', 'male_only', 'female_only'])],
+                'amenities' => 'required|array',
+            ]);
+        }
 
-        $dormRules = [
-            'establishment_name' => 'required_if:role,dorm|string|max:255',
-            'description' => 'required_if:role,dorm|string|max:1000',
-            'establishment_address' => 'required_if:role,dorm|string|max:255',
-            'zip_code' => 'required_if:role,dorm|string|max:10',
-            'contact_email' => 'required_if:role,dorm|email|max:255',
-            'cover_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:4096',
-            'property_type' => ['required_if:role,dorm', Rule::in(['dormitory', 'apartment', 'bedspace', 'homestay'])],
-            'gender_policy' => ['required_if:role,dorm', Rule::in(['co-ed', 'male_only', 'female_only'])],
-            'amenities' => 'required_if:role,dorm|array',
-        ];
-
-        return array_merge($baseRules, $studentRules, $dormRules);
+        return $rules;
     }
 
     /**

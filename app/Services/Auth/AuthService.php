@@ -3,117 +3,92 @@
 namespace App\Services\Auth;
 
 use App\Models\User;
-use App\Models\StudentProfile;
-use App\Models\DormProfile;
+use App\Services\Auth\Contracts\AuthServiceInterface;
+use App\Services\Auth\Contracts\ProfileServiceInterface;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
 
-class AuthService
+class AuthService implements AuthServiceInterface
 {
-    /**
-     * Create a new user with their profile
-     */
-    public function createUser(array $data, ?UploadedFile $profilePicture = null, ?UploadedFile $coverPhoto = null): User
-    {
-        // Handle profile picture upload
-        $profilePicturePath = null;
-        if ($profilePicture) {
-            $profilePicturePath = $profilePicture->store('profile-pictures', 'public');
-        }
-
-        // Create user
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role' => $data['role'],
-            'contact_no' => $data['contact_no'],
-            'profile_picture' => $profilePicturePath,
-        ]);
-
-        // Create role-specific profile
-        $this->createUserProfile($user, $data, $coverPhoto);
-
-        return $user;
-    }
+    public function __construct(
+        private ProfileServiceInterface $profileService
+    ) {}
 
     /**
-     * Complete user profile for social auth users
+     * Create a new user with basic information
      */
-    public function completeUserProfile(User $user, array $data): void
+    public function createUser(array $userData): User
     {
-        $user->update(['role' => $data['role']]);
-        $this->createUserProfile($user, $data);
-    }
-
-    /**
-     * Create role-specific profile
-     */
-    private function createUserProfile(User $user, array $data, ?UploadedFile $coverPhoto = null): void
-    {
-        if ($data['role'] === 'student') {
-            $this->createStudentProfile($user, $data);
-        } elseif ($data['role'] === 'dorm') {
-            $this->createDormProfile($user, $data, $coverPhoto);
-        }
-    }
-
-    /**
-     * Create student profile
-     */
-    private function createStudentProfile(User $user, array $data): void
-    {
-        StudentProfile::create([
-            'user_id' => $user->getKey(),
-            'school_name' => $data['school_name'],
-            'age' => $data['age'] ?? null,
-            'address' => $data['address'] ?? null,
-            'guardian_name' => $data['guardian_name'] ?? null,
-            'guardian_contact_no' => $data['guardian_contact_no'] ?? null,
+        return User::create([
+            'name' => $userData['name'],
+            'email' => $userData['email'],
+            'password' => Hash::make($userData['password']),
+            'role' => $userData['role'] ?? null,
+            'contact_no' => $userData['contact_no'] ?? null,
+            'email_verified_at' => now(),
         ]);
     }
 
     /**
-     * Create dorm profile
+     * Create a profile for the user based on their role
      */
-    private function createDormProfile(User $user, array $data, ?UploadedFile $coverPhoto = null): void
+    public function createUserProfile(User $user, array $profileData): void
     {
-        // Handle cover photo upload if provided via the main data array or separate parameter
-        $coverPhotoPath = null;
-        if ($coverPhoto) {
-            $coverPhotoPath = $coverPhoto->store('cover-photos', 'public');
-        }
-
-        $amenities = $data['amenities'] ?? [];
-
-        DormProfile::create([
-            'user_id' => $user->getKey(),
-            'establishment_name' => $data['establishment_name'] ?? 'My Dorm',
-            'description' => $data['description'] ?? '',
-            'establishment_address' => $data['establishment_address'] ?? 'TBD',
-            'zip_code' => $data['zip_code'] ?? 'TBD',
-            'contact_email' => $data['contact_email'] ?? $user->email,
-            'cover_photo_path' => $coverPhotoPath,
-            'property_type' => $data['property_type'] ?? 'dormitory',
-            'gender_policy' => $data['gender_policy'] ?? 'co-ed',
-            'has_wifi' => in_array('wifi', $amenities),
-            'has_ac' => in_array('ac', $amenities),
-            'has_laundry' => in_array('laundry', $amenities),
-            'has_cctv' => in_array('cctv', $amenities),
-            'allows_cooking' => in_array('cooking', $amenities),
-        ]);
+        match ($user->role) {
+            'student' => $this->profileService->createStudentProfile($user, $profileData),
+            'dorm' => $this->profileService->createDormProfile($user, $profileData),
+            default => null, // Admin or no role doesn't need a profile
+        };
     }
 
     /**
-     * Get redirect route based on user role
+     * Complete a user's profile after initial registration
      */
-    public function getRedirectRoute(User $user): string
+    public function completeProfile(User $user, array $profileData): void
     {
-        return match ($user->role) {
-            'admin' => 'admin.dashboard',
-            'dorm' => 'dorm.dashboard',
-            default => 'student.dashboard',
+        // Update user role if provided
+        if (isset($profileData['role'])) {
+            $user->update(['role' => $profileData['role']]);
+            $user->refresh();
+        }
+
+        // Create or update profile based on role
+        if ($user->role) {
+            $this->createUserProfile($user, $profileData);
+        }
+    }
+
+    /**
+     * Get the appropriate redirect URL after authentication
+     */
+    public function getRedirectUrl(User $user): string
+    {
+        // If user doesn't have a role or complete profile, redirect to complete profile
+        if (!$user->role || !$this->hasCompleteProfile($user)) {
+            return route('auth.complete-profile');
+        }
+
+        // Redirect to appropriate dashboard based on role
+        return $this->getDashboardRoute($user->role);
+    }
+
+    /**
+     * Determine if a user has completed their profile
+     */
+    public function hasCompleteProfile(User $user): bool
+    {
+        return $this->profileService->hasCompleteProfile($user);
+    }
+
+    /**
+     * Get the dashboard route for a specific role
+     */
+    public function getDashboardRoute(string $role): string
+    {
+        return match ($role) {
+            'student' => route('student.dashboard'),
+            'dorm' => route('dorm.dashboard'),
+            'admin' => route('admin.dashboard'),
+            default => route('dashboard'),
         };
     }
 }

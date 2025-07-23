@@ -27,7 +27,6 @@ return new class extends Migration
             $table->enum('property_type', ['dormitory', 'apartment', 'bedspace', 'homestay']);
             $table->enum('gender_policy', ['co-ed', 'male_only', 'female_only']);
 
-
             // Amenities
             $table->boolean('has_wifi')->default(false);
             $table->boolean('has_ac')->default(false);

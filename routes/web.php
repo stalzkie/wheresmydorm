@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Dorm\PostController;
+use App\Http\Controllers\Dorm\DashboardController as DormDashboardController;
+use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
 use App\Models\Post;
 
 /*
@@ -34,14 +36,14 @@ Route::middleware(['auth', 'verified', 'profile.complete'])->prefix('admin')->na
 // ✅ STUDENT DASHBOARD
 // ==============================
 Route::middleware(['auth', 'verified', 'profile.complete'])->prefix('student')->name('student.')->group(function () {
-    Route::get('dashboard', fn() => Inertia::render('student/dashboard'))->name('dashboard');
+    Route::get('dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
 });
 
 // ==============================
 // ✅ DORM INERTIA PAGES
 // ==============================
 Route::middleware(['auth', 'verified', 'profile.complete'])->prefix('dorm')->name('dorm.')->group(function () {
-    Route::get('dashboard', fn() => Inertia::render('dorm/dashboard'))->name('dashboard');
+    Route::get('dashboard', [DormDashboardController::class, 'index'])->name('dashboard');
 
     // ✅ Dorm Post Routes (uses PostController)
     Route::get('posts', [PostController::class, 'index'])->name('posts.history');
