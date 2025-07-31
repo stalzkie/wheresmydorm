@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\Auth\Contracts\AuthServiceInterface;
 use App\Services\Auth\Contracts\ProfileServiceInterface;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 class AuthService implements AuthServiceInterface
 {
@@ -33,11 +34,15 @@ class AuthService implements AuthServiceInterface
      */
     public function createUserProfile(User $user, array $profileData): void
     {
+        Log::info('Creating profile for user role: ' . $user->role);
+
         match ($user->role) {
             'student' => $this->profileService->createStudentProfile($user, $profileData),
             'dorm' => $this->profileService->createDormProfile($user, $profileData),
-            default => null, // Admin or no role doesn't need a profile
+            default => Log::info('No profile creation needed for role: ' . $user->role),
         };
+
+        Log::info('Profile creation completed for user: ' . $user->email);
     }
 
     /**
@@ -45,15 +50,36 @@ class AuthService implements AuthServiceInterface
      */
     public function completeProfile(User $user, array $profileData): void
     {
+        Log::info('Starting completeProfile', [
+            'user_id' => $user->id,
+            'current_role' => $user->role,
+            'profile_data_role' => $profileData['role'] ?? 'not set'
+        ]);
+
         // Update user role if provided
         if (isset($profileData['role'])) {
+            Log::info('Updating user role', ['from' => $user->role, 'to' => $profileData['role']]);
             $user->update(['role' => $profileData['role']]);
-            $user->refresh();
+            Log::info('Role updated in database');
         }
+
+        // Update contact number if provided
+        if (isset($profileData['contact_no'])) {
+            Log::info('Updating contact number');
+            $user->update(['contact_no' => $profileData['contact_no']]);
+        }
+
+        // Reload the user to get the updated role
+        Log::info('Refreshing user model');
+        $user->refresh();
+        Log::info('User refreshed', ['new_role' => $user->role]);
 
         // Create or update profile based on role
         if ($user->role) {
+            Log::info('Creating user profile for role: ' . $user->role);
             $this->createUserProfile($user, $profileData);
+        } else {
+            Log::warning('User role is still null after update');
         }
     }
 

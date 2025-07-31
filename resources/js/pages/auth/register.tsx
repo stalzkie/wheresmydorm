@@ -102,47 +102,9 @@ export default function Register() {
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        // Create a clean submission object with only relevant fields
-        const submitData: Record<string, any> = {
-            name: data.name,
-            email: data.email,
-            password: data.password,
-            password_confirmation: data.password_confirmation,
-            contact_no: data.contact_no,
-            role: data.role,
-        };
+        console.log('Submitting registration form with data:', data);
 
-        // Add profile picture if selected
-        if (data.profile_picture) {
-            submitData.profile_picture = data.profile_picture;
-        }
-
-        // Add role-specific fields ONLY for the selected role
-        if (data.role === 'student') {
-            submitData.school_name = data.school_name;
-            if (data.age) submitData.age = data.age;
-            if (data.address) submitData.address = data.address;
-            if (data.guardian_name) submitData.guardian_name = data.guardian_name;
-            if (data.guardian_contact_no) submitData.guardian_contact_no = data.guardian_contact_no;
-        } else if (data.role === 'dorm') {
-            submitData.establishment_name = data.establishment_name;
-            submitData.description = data.description;
-            submitData.establishment_address = data.establishment_address;
-            submitData.zip_code = data.zip_code;
-            submitData.contact_email = data.contact_email;
-            submitData.property_type = data.property_type;
-            submitData.gender_policy = data.gender_policy;
-            submitData.amenities = data.amenities;
-
-            // Add cover photo if selected
-            if (data.cover_photo) {
-                submitData.cover_photo = data.cover_photo;
-            }
-        }
-
-        console.log('Submitting registration form with data:', submitData);
-
-        post(route('register'), submitData, {
+        post(route('register'), {
             onFinish: () => reset('password', 'password_confirmation'),
             onError: (errors: Record<string, string>) => {
                 console.log('Registration errors:', errors);

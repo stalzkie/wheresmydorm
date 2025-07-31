@@ -24,6 +24,7 @@ class CompleteProfileRequest extends FormRequest
     {
         $baseRules = [
             'role' => ['required', Rule::in(['student', 'dorm'])],
+            'contact_no' => 'required|string|max:20',
         ];
 
         $studentRules = [
